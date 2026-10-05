@@ -1,0 +1,24 @@
+{
+  "enabled": false,
+  "_aide": "Copiez ce fichier en notifications.json et remplissez la section du service choisi (voir outils/configurer-whatsapp.cmd).",
+  "provider": "telegram",
+  "message": "📺 Le nouveau programme TV du soir est prêt ({date}) ! Primes : {primes}",
+  "callmebot": {
+    "phone": "+33600000000",
+    "apikey": "CLE_CALLMEBOT"
+  },
+  "telegram": {
+    "botToken": "123456:ABC...",
+    "chatId": "123456789"
+  },
+  "twilio": {
+    "accountSid": "",
+    "authToken": "",
+    "from": "whatsapp:+14155238886",
+    "to": "whatsapp:+33600000000"
+  },
+  "webhook": {
+    "url": "",
+    "method": "POST"
+  }
+}

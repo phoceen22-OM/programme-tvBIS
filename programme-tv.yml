@@ -1,0 +1,74 @@
+name: Programme TV du soir
+
+# Genere le guide TV du soir (HTML + PDF) deux fois par jour, meme si votre PC est eteint,
+# puis le publie dans le depot et sur GitHub Pages.
+on:
+  schedule:
+    # 06:00 UTC = 08:00 a Paris en heure d'ete ; en heure d'hiver, decaler a 07:00 UTC
+    - cron: '0 6 * * *'
+    # 16:00 UTC = 18:00 a Paris en heure d'ete ; en heure d'hiver, decaler a 17:00 UTC
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: programme-tv
+  cancel-in-progress: false
+
+jobs:
+  generer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Recuperer le depot
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configurer les notifications (facultatif)
+        env:
+          NOTIF: ${{ secrets.NOTIFICATIONS_JSON }}
+        run: |
+          if [ -n "$NOTIF" ]; then printf '%s' "$NOTIF" > outils/notifications.json; fi
+
+      - name: Generer le guide (HTML + PDF)
+        run: node outils/generer-programme-tv.mjs
+
+      - name: Preparer la page web
+        run: |
+          mkdir -p public
+          cp programmes-tv/programme-tv-du-jour.html public/index.html
+          if [ -f programmes-tv/programme-tv-du-jour.pdf ]; then cp programmes-tv/programme-tv-du-jour.pdf public/programme-tv.pdf; fi
+
+      - name: Nettoyer les archives datees (le depot reste leger)
+        run: rm -f programmes-tv/programme-tv-2*.html programmes-tv/programme-tv-2*.pdf
+
+      - name: Enregistrer dans le depot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A programmes-tv
+          git commit -m "Programme TV du $(date +%F)" || echo "aucun changement"
+          git push
+
+      - name: Publier l'artefact de la page
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: generer
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deployer sur GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
